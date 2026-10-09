@@ -86,6 +86,7 @@
             width: 150px;
         }
         .grid-container {
+            position: relative;
             background: #ffffff !important;
             padding: 25px;
             border-radius: 8px;
@@ -93,16 +94,27 @@
             margin-bottom: 20px;
             border: 2px solid #333333;
         }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 48px;
+            font-weight: bold;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: -1;
+            text-shadow: 0 0 10px #00ffff;
+        }
         /* Professional Sudoku Grid */
         .sudoku-grid {
             display: grid;
-            grid-template-columns: repeat(9, 45px);
-            grid-template-rows: repeat(9, 45px);
             border: 3px solid #000000;
+            position: relative;
+            z-index: 1;
         }
         .sudoku-cell {
-            width: 45px;
-            height: 45px;
             text-align: center;
             line-height: 45px;
             font-size: 20px;
@@ -110,12 +122,6 @@
             border: 1px solid #bbbbbb;
             background: #ffffff !important;
             color: #000000 !important;
-        }
-        .sudoku-cell:nth-child(3n) { border-right: 3px solid #000000; }
-        .sudoku-grid .sudoku-cell:nth-child(9n) { border-right: none; }
-        .sudoku-grid div:nth-child(n+19):nth-child(-n+27),
-        .sudoku-grid div:nth-child(n+46):nth-child(-n+54) {
-            border-bottom: 3px solid #000000;
         }
         .solution-number {
             color: #7f8c8d !important;
@@ -173,46 +179,49 @@
             </div>
         </div>
         <div class="grid-container">
+            <div class="watermark">SMART GEN</div>
             <div id="sudoku-grid" class="sudoku-grid"></div>
         </div>
         <div class="btn-container">
             <button class="generate-btn" onclick="generateNewPuzzle()">Generate New Puzzle</button>
             <button onclick="toggleSolution()">Show / Hide Solution</button>
             <button onclick="downloadSudokuPDF()">Download PDF</button>
+            <button onclick="downloadImage()">Download Image</button>
         </div>
     </div>
 
     <script>
         let solution = [];
         let puzzle = [];
+        let gridSize = 9;
         const gridEl = document.getElementById('sudoku-grid');
         let showingSolution = false;
 
         // Generate a complete valid Sudoku solution
-        function generateSolution() {
-            const base = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-            solution = Array.from({length: 9}, () => base.slice());
+        function generateSolution(size) {
+            const base = Array.from({length: size}, (_, i) => i + 1);
+            solution = Array.from({length: size}, () => base.slice());
 
-            // Shuffle rows within each 3x3 block
-            for (let i = 0; i < 9; i += 3) {
-                const block = solution.slice(i, i + 3);
+            // Shuffle rows within each block
+            for (let i = 0; i < size; i += Math.sqrt(size)) {
+                const block = solution.slice(i, i + Math.sqrt(size));
                 shuffleArray(block);
-                solution.splice(i, 3, ...block);
+                solution.splice(i, Math.sqrt(size), ...block);
             }
 
-            // Shuffle columns within each 3x3 block
-            for (let i = 0; i < 9; i++) {
+            // Shuffle columns within each block
+            for (let i = 0; i < size; i++) {
                 const column = solution.map(row => row[i]);
                 shuffleArray(column);
-                for (let j = 0; j < 9; j++) {
+                for (let j = 0; j < size; j++) {
                     solution[j][i] = column[j];
                 }
             }
 
             // Shuffle entire blocks
             const blocks = [];
-            for (let i = 0; i < 9; i += 3) {
-                blocks.push(solution.slice(i, i + 3));
+            for (let i = 0; i < size; i += Math.sqrt(size)) {
+                blocks.push(solution.slice(i, i + Math.sqrt(size)));
             }
             shuffleArray(blocks);
             solution = blocks.flat();
@@ -225,7 +234,18 @@
             const targetAge = document.getElementById('target-age').value;
             const difficulty = document.getElementById('difficulty').value;
 
-            const solution = generateSolution();
+            // Determine grid size based on settings
+            if (targetAge === 'kids') {
+                if (difficulty === 'easy') {
+                    gridSize = 4;
+                } else {
+                    gridSize = 6;
+                }
+            } else {
+                gridSize = 9;
+            }
+
+            const solution = generateSolution(gridSize);
             puzzle = solution.map(row => row.slice());
 
             let cellsToRemove;
@@ -233,33 +253,33 @@
             if (targetAge === 'kids') {
                 switch (difficulty) {
                     case 'easy':
-                        cellsToRemove = 20; // More numbers visible for kids
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.5); // 50% visible
                         break;
                     case 'medium':
-                        cellsToRemove = 30;
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.6); // 40% visible
                         break;
                     case 'hard':
-                        cellsToRemove = 40;
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.7); // 30% visible
                         break;
                 }
             } else {
                 switch (difficulty) {
                     case 'easy':
-                        cellsToRemove = 30;
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.6); // 40% visible
                         break;
                     case 'medium':
-                        cellsToRemove = 45;
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.7); // 30% visible
                         break;
                     case 'hard':
-                        cellsToRemove = 60; // More numbers hidden for adults
+                        cellsToRemove = Math.floor(gridSize * gridSize * 0.8); // 20% visible
                         break;
                 }
             }
 
             // Remove numbers while ensuring the puzzle remains solvable
             while (cellsToRemove > 0) {
-                const row = Math.floor(Math.random() * 9);
-                const col = Math.floor(Math.random() * 9);
+                const row = Math.floor(Math.random() * gridSize);
+                const col = Math.floor(Math.random() * gridSize);
 
                 if (puzzle[row][col] !== 0) {
                     const temp = puzzle[row][col];
@@ -294,10 +314,30 @@
 
         function createGrid() {
             gridEl.innerHTML = '';
-            for (let r = 0; r < 9; r++) {
-                for (let c = 0; c < 9; c++) {
+            const cellSize = 45;
+            gridEl.style.gridTemplateColumns = `repeat(${gridSize}, ${cellSize}px)`;
+            gridEl.style.gridTemplateRows = `repeat(${gridSize}, ${cellSize}px)`;
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'sudoku-cell';
+                    cell.style.width = `${cellSize}px`;
+                    cell.style.height = `${cellSize}px`;
+
+                    // Add thicker borders for blocks
+                    if (r % Math.sqrt(gridSize) === 0) {
+                        cell.style.borderTopWidth = '3px';
+                    }
+                    if (r === gridSize - 1) {
+                        cell.style.borderBottomWidth = '3px';
+                    }
+                    if (c % Math.sqrt(gridSize) === 0) {
+                        cell.style.borderLeftWidth = '3px';
+                    }
+                    if (c === gridSize - 1) {
+                        cell.style.borderRightWidth = '3px';
+                    }
 
                     if (puzzle[r][c] !== 0) {
                         cell.innerText = puzzle[r][c];
@@ -335,17 +375,22 @@
             doc.setFontSize(24);
             doc.text("Sudoku Puzzle", 4.25, 1.5, { align: "center" });
 
-            let startX = 2.25, startY = 2.5, cellSize = 0.44;
-            for(let i=0; i<=9; i++) {
-                doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
-                doc.line(startX, startY + i*cellSize, startX + 9*cellSize, startY + i*cellSize);
-                doc.line(startX + i*cellSize, startY, startX + i*cellSize, startY + 9*cellSize);
+            const cellSize = 3.5 / gridSize;
+            let startX = (8.5 - cellSize * gridSize) / 2;
+            let startY = 2.5;
+
+            for (let i = 0; i <= gridSize; i++) {
+                const lineWidth = (i % Math.sqrt(gridSize) === 0) ? 0.03 : 0.01;
+                doc.setLineWidth(lineWidth);
+                doc.line(startX, startY + i * cellSize, startX + gridSize * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + gridSize * cellSize);
             }
+
             doc.setFontSize(16);
-            for(let r=0; r<9; r++) {
-                for(let c=0; c<9; c++) {
-                    if(puzzle[r][c] !== 0) {
-                        doc.text(puzzle[r][c].toString(), startX + c*cellSize + 0.18, startY + r*cellSize + 0.3);
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (puzzle[r][c] !== 0) {
+                        doc.text(puzzle[r][c].toString(), startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
                     }
                 }
             }
@@ -355,22 +400,83 @@
             doc.setFontSize(24);
             doc.text("Sudoku Solution", 4.25, 1.5, { align: "center" });
 
-            for(let i=0; i<=9; i++) {
-                doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
-                doc.line(startX, startY + i*cellSize, startX + 9*cellSize, startY + i*cellSize);
-                doc.line(startX + i*cellSize, startY, startX + i*cellSize, startY + 9*cellSize);
+            for (let i = 0; i <= gridSize; i++) {
+                const lineWidth = (i % Math.sqrt(gridSize) === 0) ? 0.03 : 0.01;
+                doc.setLineWidth(lineWidth);
+                doc.line(startX, startY + i * cellSize, startX + gridSize * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + gridSize * cellSize);
             }
-            for(let r=0; r<9; r++) {
-                for(let c=0; c<9; c++) {
-                    doc.text(solution[r][c].toString(), startX + c*cellSize + 0.18, startY + r*cellSize + 0.3);
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    doc.text(solution[r][c].toString(), startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
                 }
             }
 
             doc.save("sudoku-puzzle.pdf");
         }
 
-        // Initialize the first puzzle
-        generateNewPuzzle();
-    </script>
-</body>
-</html>
+        function downloadImage() {
+            const gridContainer = document.querySelector('.grid-container');
+            const watermark = document.querySelector('.watermark');
+
+            // Temporarily hide the watermark for the image
+            watermark.style.display = 'none';
+
+            // Create a canvas element
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+
+            // Set canvas dimensions
+            const scale = 2; // Scale up for better quality
+            canvas.width = gridContainer.offsetWidth * scale;
+            canvas.height = gridContainer.offsetHeight * scale;
+
+            // Draw the grid container to the canvas
+            ctx.scale(scale, scale);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the grid
+            const grid = document.getElementById('sudoku-grid');
+            const gridRect = grid.getBoundingClientRect();
+            const gridContainerRect = gridContainer.getBoundingClientRect();
+
+            // Draw the grid lines
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+
+            for (let i = 0; i <= gridSize; i++) {
+                const x = gridRect.left - gridContainerRect.left + i * (gridRect.width / gridSize);
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, gridRect.height);
+                ctx.stroke();
+
+                const y = gridRect.top - gridContainerRect.top + i * (gridRect.height / gridSize);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(gridRect.width, y);
+                ctx.stroke();
+            }
+
+            // Draw the numbers
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#000000';
+
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    const cell = grid.children[r * gridSize + c];
+                    const cellRect = cell.getBoundingClientRect();
+
+                    if (puzzle[r][c] !== 0) {
+                        ctx.fillText(puzzle[r][c].toString(),
+                            cellRect.left - gridRect.left + cellRect.width / 2,
+                            cellRect.top - gridRect.top + cellRect.height / 2);
+                    } else if (showingSolution) {
+                        ctx.fillStyle = '#7f8c8d';
+                        ctx.fillText(solution[r][c].toString(),
+                            cellRect.left - gridRect.left + cellRect.width / 2,
+                            cellRect.top - gridRect.top + cellRect.height / 2);
