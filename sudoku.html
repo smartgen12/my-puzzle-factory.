@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Classic Sudoku - Puzzle Factory</title>
+    <!-- Stable jsPDF and html2canvas Libraries via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -133,6 +136,30 @@
             z-index: -1;
             text-shadow: 0 0 10px #00ffff;
         }
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #2980b9 !important;
+            color: white !important;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button.generate-btn {
+            background-color: #27ae60 !important;
+        }
+        button.generate-btn:hover {
+            background-color: #2ecc71 !important;
+        }
+        button:hover { background-color: #3498db !important; }
     </style>
 </head>
 <body>
@@ -146,116 +173,213 @@
     <div class="main-content">
         <div class="section">
             <h2 class="section-title">Kids Edition (Easy)</h2>
-            <div class="grid-container">
+            <div class="grid-container" id="kids-grid-container">
                 <div class="watermark">SMART GEN</div>
-                <div class="sudoku-grid grid-4">
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">3</div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell">3</div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">2</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">3</div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell">2</div>
-                    <div class="sudoku-cell">3</div>
+                <div class="sudoku-grid grid-4" id="kids-grid">
+                    <!-- Grid will be filled by JavaScript -->
                 </div>
+            </div>
+            <div class="btn-container">
+                <button class="generate-btn" onclick="generateKidsPuzzle()">Generate New Puzzle</button>
+                <button onclick="downloadKidsImage()">Download Image</button>
+                <button onclick="downloadKidsPDF()">Download PDF</button>
             </div>
         </div>
 
         <div class="section">
             <h2 class="section-title">Adults Edition</h2>
-            <div class="grid-container">
+            <div class="grid-container" id="adults-grid-container">
                 <div class="watermark">SMART GEN</div>
-                <div class="sudoku-grid grid-9">
-                    <div class="sudoku-cell">5</div>
-                    <div class="sudoku-cell">3</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">7</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">6</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell">9</div>
-                    <div class="sudoku-cell">5</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">9</div>
-                    <div class="sudoku-cell">8</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">6</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">8</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">6</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">3</div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">8</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell">7</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">2</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">6</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">6</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">2</div>
-                    <div class="sudoku-cell">8</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">4</div>
-                    <div class="sudoku-cell">1</div>
-                    <div class="sudoku-cell">9</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">5</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">8</div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell"></div>
-                    <div class="sudoku-cell">7</div>
-                    <div class="sudoku-cell">9</div>
+                <div class="sudoku-grid grid-9" id="adults-grid">
+                    <!-- Grid will be filled by JavaScript -->
                 </div>
+            </div>
+            <div class="btn-container">
+                <button class="generate-btn" onclick="generateAdultsPuzzle()">Generate New Puzzle</button>
+                <button onclick="downloadAdultsImage()">Download Image</button>
+                <button onclick="downloadAdultsPDF()">Download PDF</button>
             </div>
         </div>
     </div>
+
+    <script>
+        // Sample solutions for both grids
+        const kidsSolution = [
+            [1, 2, 3, 4],
+            [3, 4, 1, 2],
+            [2, 3, 4, 1],
+            [4, 1, 2, 3]
+        ];
+
+        const adultsSolution = [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2],
+            [6, 7, 2, 1, 9, 5, 3, 4, 8],
+            [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3],
+            [4, 2, 6, 8, 5, 3, 7, 9, 1],
+            [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 1, 5, 3, 7, 2, 8, 4],
+            [2, 8, 7, 4, 1, 9, 6, 3, 5],
+            [3, 4, 5, 2, 8, 6, 1, 7, 9]
+        ];
+
+        // Initialize grids when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            generateKidsPuzzle();
+            generateAdultsPuzzle();
+        });
+
+        // Generate a new kids puzzle
+        function generateKidsPuzzle() {
+            const grid = document.getElementById('kids-grid');
+            grid.innerHTML = '';
+
+            // Create a puzzle with about 50% visible numbers
+            const puzzle = kidsSolution.map(row => row.map(() => Math.random() > 0.5 ? 0 : null));
+
+            // Fill the grid with numbers
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+
+                    if (puzzle[r][c] === null) {
+                        cell.textContent = kidsSolution[r][c];
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Generate a new adults puzzle
+        function generateAdultsPuzzle() {
+            const grid = document.getElementById('adults-grid');
+            grid.innerHTML = '';
+
+            // Create a puzzle with about 40% visible numbers
+            const puzzle = adultsSolution.map(row => row.map(() => Math.random() > 0.6 ? 0 : null));
+
+            // Fill the grid with numbers
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+
+                    if (puzzle[r][c] === null) {
+                        cell.textContent = adultsSolution[r][c];
+                    }
+
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Download kids grid as image
+        function downloadKidsImage() {
+            const gridContainer = document.getElementById('kids-grid-container');
+
+            html2canvas(gridContainer, {
+                scale: 2,
+                backgroundColor: null,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'kids-sudoku-puzzle.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Download adults grid as image
+        function downloadAdultsImage() {
+            const gridContainer = document.getElementById('adults-grid-container');
+
+            html2canvas(gridContainer, {
+                scale: 2,
+                backgroundColor: null,
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'adults-sudoku-puzzle.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        }
+
+        // Download kids grid as PDF
+        function downloadKidsPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            // Add title
+            doc.setFontSize(24);
+            doc.text("Kids Sudoku Puzzle", 105, 20, { align: "center" });
+
+            // Draw grid
+            const cellSize = 20;
+            const startX = 50;
+            const startY = 40;
+
+            // Draw grid lines
+            for (let i = 0; i <= 4; i++) {
+                doc.setLineWidth(i % 2 === 0 ? 0.5 : 0.2);
+                doc.line(startX, startY + i * cellSize, startX + 4 * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + 4 * cellSize);
+            }
+
+            // Add numbers
+            doc.setFontSize(16);
+            for (let r = 0; r < 4; r++) {
+                for (let c = 0; c < 4; c++) {
+                    const cell = document.querySelector(`#kids-grid .sudoku-cell:nth-child(${r * 4 + c + 1})`);
+                    if (cell.textContent) {
+                        doc.text(cell.textContent, startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
+                    }
+                }
+            }
+
+            // Save PDF
+            doc.save("kids-sudoku-puzzle.pdf");
+        }
+
+        // Download adults grid as PDF
+        function downloadAdultsPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+
+            // Add title
+            doc.setFontSize(24);
+            doc.text("Adults Sudoku Puzzle", 105, 20, { align: "center" });
+
+            // Draw grid
+            const cellSize = 15;
+            const startX = 30;
+            const startY = 40;
+
+            // Draw grid lines
+            for (let i = 0; i <= 9; i++) {
+                doc.setLineWidth(i % 3 === 0 ? 0.5 : 0.2);
+                doc.line(startX, startY + i * cellSize, startX + 9 * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + 9 * cellSize);
+            }
+
+            // Add numbers
+            doc.setFontSize(12);
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.querySelector(`#adults-grid .sudoku-cell:nth-child(${r * 9 + c + 1})`);
+                    if (cell.textContent) {
+                        doc.text(cell.textContent, startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
+                    }
+                }
+            }
+
+            // Save PDF
+            doc.save("adults-sudoku-puzzle.pdf");
+        }
+    </script>
 </body>
 </html>
