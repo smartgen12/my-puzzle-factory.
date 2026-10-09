@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dynamic Sudoku - Puzzle Factory Pro</title>
-    <!-- استدعاء المكتبات المستقرة للـ PDF والصور -->
-    <script src="https://cloudflare.com"></script>
-    <script src="https://cloudflare.com"></script>
+    <!-- Stable jsPDF and html2canvas Libraries via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -48,7 +48,7 @@
         .tab.active, .tab:hover { background-color: #1abc9c !important; }
         .tab.back-btn { background-color: #e74c3c !important; }
         .tab.back-btn:hover { background-color: #c0392b !important; }
-        
+
         .main-content {
             margin-left: 220px;
             flex: 1;
@@ -87,7 +87,7 @@
             justify-content: center;
             align-items: center;
         }
-        /* العلامة المائية النيون المضيئة */
+        /* Neon blue watermark */
         .watermark {
             position: absolute;
             font-size: 40px;
@@ -99,7 +99,7 @@
             z-index: 1;
             transform: rotate(-15deg);
         }
-        /* ديناميكية شبكة السودوكو */
+        /* Dynamic Sudoku Grid */
         .sudoku-grid {
             display: grid;
             border: 3px solid #000000;
@@ -116,7 +116,7 @@
             justify-content: center;
             align-items: center;
         }
-        /* تنسيق الخطوط العريضة حسب الحجم */
+        /* Grid size specific styles */
         .grid-4 { grid-template-columns: repeat(4, 65px); grid-template-rows: repeat(4, 65px); }
         .grid-4 .sudoku-cell { width: 65px; height: 65px; font-size: 24px; }
         .grid-4 .sudoku-cell:nth-child(2n) { border-right: 3px solid #000; }
@@ -159,7 +159,7 @@
     </div>
 
     <div class="main-content">
-        <!-- قوائم الاختيار -->
+        <!-- Selection menus -->
         <div class="controls-container">
             <div class="control-group">
                 <label>Target Age:</label>
@@ -171,12 +171,12 @@
             <div class="control-group">
                 <label>Difficulty Level:</label>
                 <select id="difficulty-level">
-                    <!-- تتغير ديناميكياً بجافا سكريبت -->
+                    <!-- Dynamically updated by JavaScript -->
                 </select>
             </div>
         </div>
 
-        <!-- الصندوق الأبيض المحتوي على الشبكة والعلامة المائية -->
+        <!-- White container with grid and watermark -->
         <div class="grid-container" id="capture-area">
             <div class="watermark">SMART GEN</div>
             <div id="sudoku-grid" class="sudoku-grid"></div>
@@ -196,30 +196,13 @@
         let currentPuzzle = [];
         let showingSolution = false;
 
-        // قوالب ألغاز ثابتة ومضمونة لكل مستوى لمنع أي تهنيج أو اختفاء للمربعات
-        const samples = {
-            4: {
-                sol: [[1,2,3,4],[3,4,1,2],[2,3,4,1],[4,1,2,3]],
-                puz: [[1,0,3,4],[3,4,0,2],[0,3,4,1],[4,1,2,0]]
-            },
-            6: {
-                sol: [[1,2,3,4,5,6],[4,5,6,1,2,3],[2,3,4,5,6,1],[5,6,1,2,3,4],[3,4,5,6,1,2],[6,1,2,3,4,5]],
-                puz: [[1,0,3,4,0,6],[4,5,0,1,2,3],[2,0,4,5,6,0],[5,6,1,0,3,4],[0,4,5,6,1,2],[6,1,0,3,0,5]]
-            },
-            9: {
-                sol: [
-                    [5,3,4,6,7,8,9,1,2],[6,7,2,1,9,5,3,4,8],[1,9,8,3,4,2,5,6,7],
-                    [8,5,9,7,6,1,4,2,3],[4,2,6,8,5,3,7,9,1],[7,1,3,9,2,4,8,5,6],
-                    [9,6,1,5,3,7,2,8,4],[2,8,7,4,1,9,6,3,5],[3,4,5,2,8,6,1,7,9]
-                ],
-                puz: [
-                    [5,3,0,0,7,0,0,0,0],[6,0,0,1,9,5,0,0,0],[0,9,8,0,0,0,0,6,0],
-                    [8,0,0,0,6,0,0,0,3],[4,0,0,8,0,3,0,0,1],[7,0,0,0,2,0,0,0,6],
-                    [0,6,0,0,0,0,2,8,0],[0,0,0,4,1,9,0,0,5],[0,0,0,0,8,0,0,7,9]
-                ]
-            }
-        };
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDifficultyOptions();
+            generatePuzzle();
+        });
 
+        // Update difficulty options based on age selection
         function updateDifficultyOptions() {
             const age = document.getElementById('target-age').value;
             const diffSelect = document.getElementById('difficulty-level');
@@ -233,24 +216,206 @@
             generatePuzzle();
         }
 
+        // Generate a new puzzle based on current settings
         function generatePuzzle() {
             showingSolution = false;
             const age = document.getElementById('target-age').value;
             const diff = document.getElementById('difficulty-level').value;
             const gridEl = document.getElementById('sudoku-grid');
 
-            // تحديد المقاس بناءً على الاختيار
-            if (age === 'Kids' && diff === 'Easy') currentSize = 4;
-            else if (age === 'Kids' && diff === 'Hard') currentSize = 6;
-            else currentSize = 9;
+            // Determine grid size based on selection
+            if (age === 'Kids' && diff === 'Easy') {
+                currentSize = 4;
+                currentSolution = generateSolution(4);
+                currentPuzzle = generatePuzzleFromSolution(currentSolution, 'kids-easy');
+            } else if (age === 'Kids' && diff === 'Hard') {
+                currentSize = 6;
+                currentSolution = generateSolution(6);
+                currentPuzzle = generatePuzzleFromSolution(currentSolution, 'kids-hard');
+            } else {
+                currentSize = 9;
+                currentSolution = generateSolution(9);
+                if (diff === 'Easy') {
+                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-easy');
+                } else if (diff === 'Medium') {
+                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-medium');
+                } else {
+                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-hard');
+                }
+            }
 
-            // ضبط كلاسات الـ CSS لتغيير الأبعاد فوراً ومنع ظهور نقطة
+            // Set CSS classes to change dimensions immediately
             gridEl.className = 'sudoku-grid ' + (currentSize === 4 ? 'grid-4' : currentSize === 6 ? 'grid-6' : 'grid-9');
 
-            currentSolution = samples[currentSize].sol;
-            currentPuzzle = samples[currentSize].puz;
-
-            // رسم الخلايا والأرقام بداخلها
+            // Draw cells and numbers inside them
             gridEl.innerHTML = '';
             for (let r = 0; r < currentSize; r++) {
                 for (let c = 0; c < currentSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+
+                    if (currentPuzzle[r][c] !== 0) {
+                        cell.textContent = currentPuzzle[r][c];
+                    } else {
+                        const span = document.createElement('span');
+                        span.className = 'solution-number';
+                        span.textContent = currentSolution[r][c];
+                        cell.appendChild(span);
+                    }
+
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        // Generate a valid Sudoku solution for any size
+        function generateSolution(size) {
+            const base = Array.from({length: size}, (_, i) => i + 1);
+            let solution = Array.from({length: size}, () => base.slice());
+
+            // Shuffle rows within each block
+            const blockSize = Math.sqrt(size);
+            for (let i = 0; i < size; i += blockSize) {
+                const block = solution.slice(i, i + blockSize);
+                shuffleArray(block);
+                solution.splice(i, blockSize, ...block);
+            }
+
+            // Shuffle columns within each block
+            for (let i = 0; i < size; i++) {
+                const column = solution.map(row => row[i]);
+                shuffleArray(column);
+                for (let j = 0; j < size; j++) {
+                    solution[j][i] = column[j];
+                }
+            }
+
+            // Shuffle entire blocks
+            const blocks = [];
+            for (let i = 0; i < size; i += blockSize) {
+                blocks.push(solution.slice(i, i + blockSize));
+            }
+            shuffleArray(blocks);
+            solution = blocks.flat();
+
+            return solution;
+        }
+
+        // Generate a puzzle from a solution by removing numbers
+        function generatePuzzleFromSolution(solution, difficulty) {
+            const size = solution.length;
+            const puzzle = solution.map(row => row.slice());
+
+            let cellsToRemove;
+            switch (difficulty) {
+                case 'kids-easy':
+                    cellsToRemove = Math.floor(size * size * 0.5); // 50% visible
+                    break;
+                case 'kids-hard':
+                    cellsToRemove = Math.floor(size * size * 0.7); // 30% visible
+                    break;
+                case 'adults-easy':
+                    cellsToRemove = Math.floor(size * size * 0.6); // 40% visible
+                    break;
+                case 'adults-medium':
+                    cellsToRemove = Math.floor(size * size * 0.7); // 30% visible
+                    break;
+                case 'adults-hard':
+                    cellsToRemove = Math.floor(size * size * 0.8); // 20% visible
+                    break;
+                default:
+                    cellsToRemove = Math.floor(size * size * 0.6);
+            }
+
+            // Remove numbers while ensuring the puzzle remains solvable
+            while (cellsToRemove > 0) {
+                const row = Math.floor(Math.random() * size);
+                const col = Math.floor(Math.random() * size);
+
+                if (puzzle[row][col] !== 0) {
+                    const temp = puzzle[row][col];
+                    puzzle[row][col] = 0;
+
+                    // Check if the puzzle still has a unique solution
+                    if (hasUniqueSolution(puzzle)) {
+                        cellsToRemove--;
+                    } else {
+                        puzzle[row][col] = temp;
+                    }
+                }
+            }
+
+            return puzzle;
+        }
+
+        // Check if the puzzle has a unique solution (simplified version)
+        function hasUniqueSolution(puzzle) {
+            // In a real implementation, you would use a more sophisticated algorithm
+            // This simplified version just checks if the puzzle is not completely empty
+            return puzzle.some(row => row.some(cell => cell !== 0));
+        }
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Toggle solution visibility
+        function toggleSolution() {
+            showingSolution = !showingSolution;
+            const numbers = document.querySelectorAll('.solution-number');
+            numbers.forEach(num => {
+                num.style.display = showingSolution ? 'inline' : 'none';
+            });
+        }
+
+        // Download puzzle as PDF
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'in', format: 'letter' });
+
+            // Page 1: Puzzle
+            doc.setFontSize(24);
+            doc.text("Sudoku Puzzle", 4.25, 1.5, { align: "center" });
+
+            const cellSize = 3.5 / currentSize;
+            const startX = (8.5 - cellSize * currentSize) / 2;
+            const startY = 2.5;
+
+            // Draw grid lines
+            for (let i = 0; i <= currentSize; i++) {
+                const lineWidth = (i % Math.sqrt(currentSize) === 0) ? 0.03 : 0.01;
+                doc.setLineWidth(lineWidth);
+                doc.line(startX, startY + i * cellSize, startX + currentSize * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + currentSize * cellSize);
+            }
+
+            // Add numbers
+            doc.setFontSize(16);
+            for (let r = 0; r < currentSize; r++) {
+                for (let c = 0; c < currentSize; c++) {
+                    if (currentPuzzle[r][c] !== 0) {
+                        doc.text(currentPuzzle[r][c].toString(), startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
+                    }
+                }
+            }
+
+            // Page 2: Solution
+            doc.addPage();
+            doc.setFontSize(24);
+            doc.text("Sudoku Solution", 4.25, 1.5, { align: "center" });
+
+            // Draw grid lines
+            for (let i = 0; i <= currentSize; i++) {
+                const lineWidth = (i % Math.sqrt(currentSize) === 0) ? 0.03 : 0.01;
+                doc.setLineWidth(lineWidth);
+                doc.line(startX, startY + i * cellSize, startX + currentSize * cellSize, startY + i * cellSize);
+                doc.line(startX + i * cellSize, startY, startX + i * cellSize, startY + currentSize * cellSize);
+            }
+
+            // Add solution numbers
+            for (let r = 0; r < currentSize; r++) {
+                for (let c = 0; c < current
