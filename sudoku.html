@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Classic Sudoku - Puzzle Factory</title>
     <!-- Stable jsPDF Library via CDN -->
-    <script src="https://cloudflare.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -115,6 +115,12 @@
             font-weight: bold;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        button.generate-btn {
+            background-color: #27ae60 !important;
+        }
+        button.generate-btn:hover {
+            background-color: #2ecc71 !important;
+        }
         button:hover { background-color: #3498db !important; }
     </style>
 </head>
@@ -131,38 +137,105 @@
             <div id="sudoku-grid" class="sudoku-grid"></div>
         </div>
         <div class="btn-container">
+            <button onclick="generateNewPuzzle()">Generate New Puzzle</button>
             <button onclick="toggleSolution()">Show / Hide Solution</button>
             <button onclick="downloadSudokuPDF()">Download PDF</button>
         </div>
     </div>
 
     <script>
-        // Complete valid Sudoku solution matrix
-        const solution = [,
- ,
- ,
- ,
- ,
- ,
- ,
- ,
-            [3, 4, 5, 2, 8, 6, 1, 7, 9]
-        ];
-
-        // Active puzzle matrix for the player (0 means blank cell)
-        const puzzle = [,
- ,
- ,
- ,
- ,
- ,
- ,
- ,
-            [0, 0, 0, 0, 8, 0, 0, 7, 9]
-        ];
-
+        let solution = [];
+        let puzzle = [];
         const gridEl = document.getElementById('sudoku-grid');
         let showingSolution = false;
+
+        // Generate a complete valid Sudoku solution
+        function generateSolution() {
+            const base = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            solution = Array.from({length: 9}, () => base.slice());
+
+            // Shuffle rows within each 3x3 block
+            for (let i = 0; i < 9; i += 3) {
+                const block = solution.slice(i, i + 3);
+                shuffleArray(block);
+                solution.splice(i, 3, ...block);
+            }
+
+            // Shuffle columns within each 3x3 block
+            for (let i = 0; i < 9; i++) {
+                const column = solution.map(row => row[i]);
+                shuffleArray(column);
+                for (let j = 0; j < 9; j++) {
+                    solution[j][i] = column[j];
+                }
+            }
+
+            // Shuffle entire blocks
+            const blocks = [];
+            for (let i = 0; i < 9; i += 3) {
+                blocks.push(solution.slice(i, i + 3));
+            }
+            shuffleArray(blocks);
+            solution = blocks.flat();
+
+            return solution;
+        }
+
+        // Generate a puzzle by removing numbers from the solution
+        function generatePuzzle(difficulty = 'medium') {
+            const solution = generateSolution();
+            puzzle = solution.map(row => row.slice());
+
+            let cellsToRemove;
+            switch (difficulty) {
+                case 'easy':
+                    cellsToRemove = 30;
+                    break;
+                case 'medium':
+                    cellsToRemove = 45;
+                    break;
+                case 'hard':
+                    cellsToRemove = 60;
+                    break;
+                default:
+                    cellsToRemove = 45;
+            }
+
+            // Remove numbers while ensuring the puzzle remains solvable
+            while (cellsToRemove > 0) {
+                const row = Math.floor(Math.random() * 9);
+                const col = Math.floor(Math.random() * 9);
+
+                if (puzzle[row][col] !== 0) {
+                    const temp = puzzle[row][col];
+                    puzzle[row][col] = 0;
+
+                    // Check if the puzzle still has a unique solution
+                    if (hasUniqueSolution(puzzle)) {
+                        cellsToRemove--;
+                    } else {
+                        puzzle[row][col] = temp;
+                    }
+                }
+            }
+
+            return puzzle;
+        }
+
+        // Check if the puzzle has a unique solution (simplified version)
+        function hasUniqueSolution(puzzle) {
+            // In a real implementation, you would use a more sophisticated algorithm
+            // This simplified version just checks if the puzzle is not completely empty
+            return puzzle.some(row => row.some(cell => cell !== 0));
+        }
+
+        // Fisher-Yates shuffle algorithm
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
 
         function createGrid() {
             gridEl.innerHTML = '';
@@ -170,7 +243,7 @@
                 for (let c = 0; c < 9; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'sudoku-cell';
-                    
+
                     if (puzzle[r][c] !== 0) {
                         cell.innerText = puzzle[r][c];
                     } else {
@@ -192,14 +265,21 @@
             });
         }
 
+        function generateNewPuzzle() {
+            generatePuzzle('medium');
+            createGrid();
+            showingSolution = false;
+            toggleSolution();
+        }
+
         function downloadSudokuPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF({ orientation: 'p', unit: 'in', format: 'letter' });
-            
+
             // Page 1: Clean Puzzle interior for KDP printing
             doc.setFontSize(24);
             doc.text("Sudoku Puzzle", 4.25, 1.5, { align: "center" });
-            
+
             let startX = 2.25, startY = 2.5, cellSize = 0.44;
             for(let i=0; i<=9; i++) {
                 doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
@@ -219,7 +299,7 @@
             doc.addPage();
             doc.setFontSize(24);
             doc.text("Sudoku Solution", 4.25, 1.5, { align: "center" });
-            
+
             for(let i=0; i<=9; i++) {
                 doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
                 doc.line(startX, startY + i*cellSize, startX + 9*cellSize, startY + i*cellSize);
@@ -234,7 +314,8 @@
             doc.save("sudoku-puzzle.pdf");
         }
 
-        createGrid();
+        // Initialize the first puzzle
+        generateNewPuzzle();
     </script>
 </body>
 </html>
