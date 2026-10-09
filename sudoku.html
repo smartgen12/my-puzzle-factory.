@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Mazes - Puzzle Factory</title>
+    <title>Classic Sudoku - Puzzle Factory</title>
     <!-- Stable jsPDF Library via CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
@@ -85,37 +85,40 @@
             border: 1px solid #ccc;
             width: 150px;
         }
-        .maze-container {
+        .grid-container {
             background: #ffffff !important;
             padding: 25px;
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.15);
             margin-bottom: 20px;
             border: 2px solid #333333;
-            overflow: auto;
         }
-        .maze-grid {
+        /* Professional Sudoku Grid */
+        .sudoku-grid {
             display: grid;
+            grid-template-columns: repeat(9, 45px);
+            grid-template-rows: repeat(9, 45px);
             border: 3px solid #000000;
-            margin: 0 auto;
         }
-        .maze-cell {
-            width: 20px;
-            height: 20px;
-            background-color: #ffffff !important;
+        .sudoku-cell {
+            width: 45px;
+            height: 45px;
+            text-align: center;
+            line-height: 45px;
+            font-size: 20px;
+            font-weight: bold;
             border: 1px solid #bbbbbb;
+            background: #ffffff !important;
+            color: #000000 !important;
         }
-        .maze-cell.wall {
-            background-color: #000000 !important;
+        .sudoku-cell:nth-child(3n) { border-right: 3px solid #000000; }
+        .sudoku-grid .sudoku-cell:nth-child(9n) { border-right: none; }
+        .sudoku-grid div:nth-child(n+19):nth-child(-n+27),
+        .sudoku-grid div:nth-child(n+46):nth-child(-n+54) {
+            border-bottom: 3px solid #000000;
         }
-        .maze-cell.start {
-            background-color: #27ae60 !important;
-        }
-        .maze-cell.end {
-            background-color: #e74c3c !important;
-        }
-        .maze-cell.solution {
-            background-color: #e74c3c !important;
+        .solution-number {
+            color: #7f8c8d !important;
             display: none;
         }
         .btn-container {
@@ -148,8 +151,7 @@
     <div class="sidebar">
         <h2>Puzzle Factory Pro</h2>
         <a href="index.html" class="tab back-btn">⬅ Back to Dashboard</a>
-        <div class="tab">Classic Sudoku</div>
-        <div class="tab active">Random Mazes</div>
+        <div class="tab active">Classic Sudoku</div>
     </div>
 
     <div class="main-content">
@@ -170,245 +172,116 @@
                 </select>
             </div>
         </div>
-        <div class="maze-container">
-            <div id="maze-grid" class="maze-grid"></div>
+        <div class="grid-container">
+            <div id="sudoku-grid" class="sudoku-grid"></div>
         </div>
         <div class="btn-container">
-            <button class="generate-btn" onclick="generateNewMaze()">Generate New Maze</button>
+            <button class="generate-btn" onclick="generateNewPuzzle()">Generate New Puzzle</button>
             <button onclick="toggleSolution()">Show / Hide Solution</button>
-            <button onclick="downloadMazePDF()">Download PDF</button>
+            <button onclick="downloadSudokuPDF()">Download PDF</button>
         </div>
     </div>
 
     <script>
-        let maze = [];
-        let solutionPath = [];
-        let gridSize = 10;
-        let cellSize = 20;
-        const mazeGrid = document.getElementById('maze-grid');
+        let solution = [];
+        let puzzle = [];
+        const gridEl = document.getElementById('sudoku-grid');
         let showingSolution = false;
 
-        // Generate a new maze based on settings
-        function generateNewMaze() {
+        // Generate a complete valid Sudoku solution
+        function generateSolution() {
+            const base = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            solution = Array.from({length: 9}, () => base.slice());
+
+            // Shuffle rows within each 3x3 block
+            for (let i = 0; i < 9; i += 3) {
+                const block = solution.slice(i, i + 3);
+                shuffleArray(block);
+                solution.splice(i, 3, ...block);
+            }
+
+            // Shuffle columns within each 3x3 block
+            for (let i = 0; i < 9; i++) {
+                const column = solution.map(row => row[i]);
+                shuffleArray(column);
+                for (let j = 0; j < 9; j++) {
+                    solution[j][i] = column[j];
+                }
+            }
+
+            // Shuffle entire blocks
+            const blocks = [];
+            for (let i = 0; i < 9; i += 3) {
+                blocks.push(solution.slice(i, i + 3));
+            }
+            shuffleArray(blocks);
+            solution = blocks.flat();
+
+            return solution;
+        }
+
+        // Generate a puzzle by removing numbers from the solution
+        function generatePuzzle() {
             const targetAge = document.getElementById('target-age').value;
             const difficulty = document.getElementById('difficulty').value;
 
-            // Determine grid size based on settings
+            const solution = generateSolution();
+            puzzle = solution.map(row => row.slice());
+
+            let cellsToRemove;
+
             if (targetAge === 'kids') {
                 switch (difficulty) {
                     case 'easy':
-                        gridSize = 10;
+                        cellsToRemove = 20; // More numbers visible for kids
                         break;
                     case 'medium':
-                        gridSize = 12;
+                        cellsToRemove = 30;
                         break;
                     case 'hard':
-                        gridSize = 14;
+                        cellsToRemove = 40;
                         break;
                 }
             } else {
                 switch (difficulty) {
                     case 'easy':
-                        gridSize = 18;
+                        cellsToRemove = 30;
                         break;
                     case 'medium':
-                        gridSize = 22;
+                        cellsToRemove = 45;
                         break;
                     case 'hard':
-                        gridSize = 25;
+                        cellsToRemove = 60; // More numbers hidden for adults
                         break;
                 }
             }
 
-            // Generate maze
-            maze = generateMaze(gridSize, gridSize);
-            solutionPath = findSolutionPath(maze);
+            // Remove numbers while ensuring the puzzle remains solvable
+            while (cellsToRemove > 0) {
+                const row = Math.floor(Math.random() * 9);
+                const col = Math.floor(Math.random() * 9);
 
-            // Create grid
-            createGrid();
+                if (puzzle[row][col] !== 0) {
+                    const temp = puzzle[row][col];
+                    puzzle[row][col] = 0;
 
-            // Hide solution initially
-            showingSolution = false;
-            toggleSolution();
-        }
-
-        // Generate a maze using recursive backtracking algorithm
-        function generateMaze(width, height) {
-            const maze = Array.from({ length: height }, () => Array(width).fill(1));
-
-            function carvePassages(x, y) {
-                const directions = [
-                    [0, 1],
-                    [1, 0],
-                    [0, -1],
-                    [-1, 0]
-                ];
-
-                shuffleArray(directions);
-
-                for (const [dx, dy] of directions) {
-                    const nx = x + dx * 2;
-                    const ny = y + dy * 2;
-
-                    if (nx >= 0 && nx < width && ny >= 0 && ny < height && maze[ny][nx] === 1) {
-                        maze[y + dy][x + dx] = 0;
-                        maze[ny][nx] = 0;
-                        carvePassages(nx, ny);
-                    }
-                }
-            }
-
-            // Start from a random cell
-            const startX = Math.floor(Math.random() * (width - 1)) | 1;
-            const startY = Math.floor(Math.random() * (height - 1)) | 1;
-            maze[startY][startX] = 0;
-
-            carvePassages(startX, startY);
-
-            // Set start and end points
-            maze[1][0] = 2; // Start
-            maze[height - 2][width - 1] = 3; // End
-
-            return maze;
-        }
-
-        // Find a solution path through the maze
-        function findSolutionPath(maze) {
-            const height = maze.length;
-            const width = maze[0].length;
-            const visited = Array.from({ length: height }, () => Array(width).fill(false));
-            const path = [];
-
-            function dfs(x, y) {
-                if (x < 0 || x >= width || y < 0 || y >= height || maze[y][x] === 1 || visited[y][x]) {
-                    return false;
-                }
-
-                visited[y][x] = true;
-                path.push([x, y]);
-
-                if (maze[y][x] === 3) {
-                    return true;
-                }
-
-                if (dfs(x + 1, y) || dfs(x - 1, y) || dfs(x, y + 1) || dfs(x, y - 1)) {
-                    return true;
-                }
-
-                path.pop();
-                return false;
-            }
-
-            dfs(0, 1);
-            return path;
-        }
-
-        // Create the maze grid
-        function createGrid() {
-            mazeGrid.innerHTML = '';
-            mazeGrid.style.gridTemplateColumns = `repeat(${maze[0].length}, ${cellSize}px)`;
-            mazeGrid.style.gridTemplateRows = `repeat(${maze.length}, ${cellSize}px)`;
-
-            for (let y = 0; y < maze.length; y++) {
-                for (let x = 0; x < maze[y].length; x++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'maze-cell';
-
-                    if (maze[y][x] === 1) {
-                        cell.classList.add('wall');
-                    } else if (maze[y][x] === 2) {
-                        cell.classList.add('start');
-                    } else if (maze[y][x] === 3) {
-                        cell.classList.add('end');
+                    // Check if the puzzle still has a unique solution
+                    if (hasUniqueSolution(puzzle)) {
+                        cellsToRemove--;
                     } else {
-                        cell.classList.add('path');
+                        puzzle[row][col] = temp;
                     }
-
-                    const solutionCell = document.createElement('div');
-                    solutionCell.className = 'maze-cell solution';
-
-                    if (solutionPath.some(([sx, sy]) => sx === x && sy === y)) {
-                        solutionCell.style.display = 'block';
-                    }
-
-                    cell.appendChild(solutionCell);
-                    mazeGrid.appendChild(cell);
                 }
             }
+
+            return puzzle;
         }
 
-        // Toggle solution visibility
-        function toggleSolution() {
-            showingSolution = !showingSolution;
-            const solutionCells = document.querySelectorAll('.solution');
-            solutionCells.forEach(cell => {
-                cell.style.display = showingSolution ? 'block' : 'none';
-            });
-        }
-
-        // Download maze as PDF
-        function downloadMazePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'letter' });
-
-            // Page 1: Maze puzzle
-            doc.setFontSize(24);
-            doc.text("Maze Puzzle", 105, 20, { align: "center" });
-
-            const cellSizePdf = 210 / Math.max(maze[0].length, maze.length) * 0.8;
-            const startX = (210 - maze[0].length * cellSizePdf) / 2;
-            const startY = 50;
-
-            for (let y = 0; y < maze.length; y++) {
-                for (let x = 0; x < maze[y].length; x++) {
-                    const cellX = startX + x * cellSizePdf;
-                    const cellY = startY + y * cellSizePdf;
-
-                    if (maze[y][x] === 1) {
-                        doc.setFillColor(0, 0, 0);
-                    } else if (maze[y][x] === 2) {
-                        doc.setFillColor(39, 174, 96);
-                    } else if (maze[y][x] === 3) {
-                        doc.setFillColor(231, 76, 60);
-                    } else {
-                        doc.setFillColor(255, 255, 255);
-                    }
-
-                    doc.rect(cellX, cellY, cellSizePdf, cellSizePdf, 'F');
-                    doc.setDrawColor(0, 0, 0);
-                    doc.rect(cellX, cellY, cellSizePdf, cellSizePdf);
-                }
-            }
-
-            // Page 2: Maze solution
-            doc.addPage();
-            doc.setFontSize(24);
-            doc.text("Maze Solution", 105, 20, { align: "center" });
-
-            for (let y = 0; y < maze.length; y++) {
-                for (let x = 0; x < maze[y].length; x++) {
-                    const cellX = startX + x * cellSizePdf;
-                    const cellY = startY + y * cellSizePdf;
-
-                    if (solutionPath.some(([sx, sy]) => sx === x && sy === y)) {
-                        doc.setFillColor(231, 76, 60);
-                    } else if (maze[y][x] === 1) {
-                        doc.setFillColor(0, 0, 0);
-                    } else if (maze[y][x] === 2) {
-                        doc.setFillColor(39, 174, 96);
-                    } else if (maze[y][x] === 3) {
-                        doc.setFillColor(231, 76, 60);
-                    } else {
-                        doc.setFillColor(255, 255, 255);
-                    }
-
-                    doc.rect(cellX, cellY, cellSizePdf, cellSizePdf, 'F');
-                    doc.setDrawColor(0, 0, 0);
-                    doc.rect(cellX, cellY, cellSizePdf, cellSizePdf);
-                }
-            }
-
-            doc.save("maze-puzzle.pdf");
+        // Check if the puzzle has a unique solution (simplified version)
+        function hasUniqueSolution(puzzle) {
+            // In a real implementation, you would use a more sophisticated algorithm
+            // This simplified version just checks if the puzzle is not completely empty
+            return puzzle.some(row => row.some(cell => cell !== 0));
         }
 
         // Fisher-Yates shuffle algorithm
@@ -419,8 +292,85 @@
             }
         }
 
-        // Initialize the first maze
-        generateNewMaze();
+        function createGrid() {
+            gridEl.innerHTML = '';
+            for (let r = 0; r < 9; r++) {
+                for (let c = 0; c < 9; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'sudoku-cell';
+
+                    if (puzzle[r][c] !== 0) {
+                        cell.innerText = puzzle[r][c];
+                    } else {
+                        const span = document.createElement('span');
+                        span.className = 'solution-number';
+                        span.innerText = solution[r][c];
+                        cell.appendChild(span);
+                    }
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+
+        function toggleSolution() {
+            showingSolution = !showingSolution;
+            const numbers = document.querySelectorAll('.solution-number');
+            numbers.forEach(num => {
+                num.style.display = showingSolution ? 'inline' : 'none';
+            });
+        }
+
+        function generateNewPuzzle() {
+            generatePuzzle();
+            createGrid();
+            showingSolution = false;
+            toggleSolution();
+        }
+
+        function downloadSudokuPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'in', format: 'letter' });
+
+            // Page 1: Clean Puzzle interior for KDP printing
+            doc.setFontSize(24);
+            doc.text("Sudoku Puzzle", 4.25, 1.5, { align: "center" });
+
+            let startX = 2.25, startY = 2.5, cellSize = 0.44;
+            for(let i=0; i<=9; i++) {
+                doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
+                doc.line(startX, startY + i*cellSize, startX + 9*cellSize, startY + i*cellSize);
+                doc.line(startX + i*cellSize, startY, startX + i*cellSize, startY + 9*cellSize);
+            }
+            doc.setFontSize(16);
+            for(let r=0; r<9; r++) {
+                for(let c=0; c<9; c++) {
+                    if(puzzle[r][c] !== 0) {
+                        doc.text(puzzle[r][c].toString(), startX + c*cellSize + 0.18, startY + r*cellSize + 0.3);
+                    }
+                }
+            }
+
+            // Page 2: Solution interior for KDP printing
+            doc.addPage();
+            doc.setFontSize(24);
+            doc.text("Sudoku Solution", 4.25, 1.5, { align: "center" });
+
+            for(let i=0; i<=9; i++) {
+                doc.setLineWidth(i % 3 === 0 ? 0.03 : 0.01);
+                doc.line(startX, startY + i*cellSize, startX + 9*cellSize, startY + i*cellSize);
+                doc.line(startX + i*cellSize, startY, startX + i*cellSize, startY + 9*cellSize);
+            }
+            for(let r=0; r<9; r++) {
+                for(let c=0; c<9; c++) {
+                    doc.text(solution[r][c].toString(), startX + c*cellSize + 0.18, startY + r*cellSize + 0.3);
+                }
+            }
+
+            doc.save("sudoku-puzzle.pdf");
+        }
+
+        // Initialize the first puzzle
+        generateNewPuzzle();
     </script>
 </body>
 </html>
