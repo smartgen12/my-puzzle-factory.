@@ -162,14 +162,14 @@
         <!-- Selection menus -->
         <div class="controls-container">
             <div class="control-group">
-                <label>Target Age:</label>
+                <label for="target-age">Target Age:</label>
                 <select id="target-age" onchange="updateDifficultyOptions()">
                     <option value="Kids">Kids</option>
                     <option value="Adults">Adults</option>
                 </select>
             </div>
             <div class="control-group">
-                <label>Difficulty Level:</label>
+                <label for="difficulty-level">Difficulty Level:</label>
                 <select id="difficulty-level">
                     <!-- Dynamically updated by JavaScript -->
                 </select>
@@ -226,23 +226,15 @@
             // Determine grid size based on selection
             if (age === 'Kids' && diff === 'Easy') {
                 currentSize = 4;
-                currentSolution = generateSolution(4);
-                currentPuzzle = generatePuzzleFromSolution(currentSolution, 'kids-easy');
             } else if (age === 'Kids' && diff === 'Hard') {
                 currentSize = 6;
-                currentSolution = generateSolution(6);
-                currentPuzzle = generatePuzzleFromSolution(currentSolution, 'kids-hard');
             } else {
                 currentSize = 9;
-                currentSolution = generateSolution(9);
-                if (diff === 'Easy') {
-                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-easy');
-                } else if (diff === 'Medium') {
-                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-medium');
-                } else {
-                    currentPuzzle = generatePuzzleFromSolution(currentSolution, 'adults-hard');
-                }
             }
+
+            // Generate solution and puzzle
+            currentSolution = generateSolution(currentSize);
+            currentPuzzle = generatePuzzleFromSolution(currentSolution, age, diff);
 
             // Set CSS classes to change dimensions immediately
             gridEl.className = 'sudoku-grid ' + (currentSize === 4 ? 'grid-4' : currentSize === 6 ? 'grid-6' : 'grid-9');
@@ -302,29 +294,25 @@
         }
 
         // Generate a puzzle from a solution by removing numbers
-        function generatePuzzleFromSolution(solution, difficulty) {
+        function generatePuzzleFromSolution(solution, age, difficulty) {
             const size = solution.length;
             const puzzle = solution.map(row => row.slice());
 
             let cellsToRemove;
-            switch (difficulty) {
-                case 'kids-easy':
+            if (age === 'Kids') {
+                if (difficulty === 'Easy') {
                     cellsToRemove = Math.floor(size * size * 0.5); // 50% visible
-                    break;
-                case 'kids-hard':
+                } else {
                     cellsToRemove = Math.floor(size * size * 0.7); // 30% visible
-                    break;
-                case 'adults-easy':
+                }
+            } else {
+                if (difficulty === 'Easy') {
                     cellsToRemove = Math.floor(size * size * 0.6); // 40% visible
-                    break;
-                case 'adults-medium':
+                } else if (difficulty === 'Medium') {
                     cellsToRemove = Math.floor(size * size * 0.7); // 30% visible
-                    break;
-                case 'adults-hard':
+                } else {
                     cellsToRemove = Math.floor(size * size * 0.8); // 20% visible
-                    break;
-                default:
-                    cellsToRemove = Math.floor(size * size * 0.6);
+                }
             }
 
             // Remove numbers while ensuring the puzzle remains solvable
@@ -418,4 +406,19 @@
 
             // Add solution numbers
             for (let r = 0; r < currentSize; r++) {
-                for (let c = 0; c < current
+                for (let c = 0; c < currentSize; c++) {
+                    doc.text(currentSolution[r][c].toString(), startX + c * cellSize + cellSize / 2, startY + r * cellSize + cellSize / 2, { align: 'center' });
+                }
+            }
+
+            doc.save("sudoku-puzzle.pdf");
+        }
+
+        // Download puzzle as image
+        function downloadImage() {
+            const captureArea = document.getElementById('capture-area');
+
+            html2canvas(captureArea, {
+                scale: 2,
+                backgroundColor: null,
+                logging: false,
